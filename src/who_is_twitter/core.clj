@@ -2,6 +2,8 @@
 
 (require '(twitter [oauth :as oauth]))
 (require '(twitter.api [restful :as twitter]))
+(require '(clojure.data [json :as json]))
+
 
 (def ^:dynamic *creds* (oauth/make-oauth-creds 
 						"fKxjEt5kGvr1UOPJEHsuVQ"
@@ -10,18 +12,33 @@
 						"9tOV64pxiI96SLCELl2nYqjv4PieLXPjnCmP1cMY")
 )
 
-(defn -main [& args]
-	(println "Starting whois for twitter")
-	(let [user-info 
-			((twitter/show-user 
-				:oauth-creds *creds* 
-				:params {:screen-name "AdamJWynne"}
-			) :body)
-			]
+(def ^:dynamic *read-from-json* true)
+(def ^:dynamic *dump-json* true)
+
+(defn show-base-info [user-info]
 		(println "Full name:        " (user-info :name))
 		(println "Screen name:      " (user-info :screen_name))
 		(println "Self description: " (user-info :description))
 		(println "Location :        " (user-info :location))
-		(println "Web :             " (user-info :url)))
+		(println "Web :             " (user-info :url))
+)
+
+(defn -main [& args]
+	(println "Starting whois for twitter")
+	(let 
+		[user-info 
+			(if-not *read-from-json*
+				((twitter/show-user 
+					:oauth-creds *creds* 
+					:params {:screen-name "AdamJWynne"}
+				) :body)
+				(json/read-json (slurp "info.txt"))
+			)
+		]
+
+		(show-base-info user-info)
+		(when *dump-json*
+			(spit "info.txt" (json/json-str user-info)))
+	)
 	(System/exit 0)
 )
